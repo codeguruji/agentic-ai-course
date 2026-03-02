@@ -1,0 +1,2224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building Production-Ready AI Agents with Claude Code</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Literata:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111318;
+    --surface2: #181c23;
+    --border: #1e2530;
+    --accent: #00e5b4;
+    --accent2: #ff6b35;
+    --accent3: #7c6af7;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --code-bg: #0d1117;
+    --warn: #fbbf24;
+    --success: #34d399;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Literata', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.75;
+    overflow-x: hidden;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 8rem 6rem 6rem;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: -200px;
+    right: -200px;
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(0,229,180,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -100px;
+    left: 30%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(124,106,247,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .header-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.2s;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 800;
+    line-height: 1.05;
+    max-width: 800px;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.4s;
+  }
+
+  h1 span.accent { color: var(--accent); }
+  h1 span.accent2 { color: var(--accent2); }
+
+  .header-desc {
+    font-size: 1.1rem;
+    color: var(--muted);
+    max-width: 560px;
+    font-style: italic;
+    margin-bottom: 3rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.6s;
+  }
+
+  .header-meta {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.8s;
+  }
+
+  .meta-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.4rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .meta-pill.highlight {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* GRID LINE DECORATION */
+  .grid-lines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.03;
+    background-image:
+      linear-gradient(var(--text) 1px, transparent 1px),
+      linear-gradient(90deg, var(--text) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,12,15,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 4rem;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  nav::-webkit-scrollbar { display: none; }
+
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    padding: 1rem 2rem 1rem 0;
+    white-space: nowrap;
+    border-right: 1px solid var(--border);
+    margin-right: 1rem;
+  }
+
+  nav a {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 1.2rem 1rem;
+    white-space: nowrap;
+    transition: color 0.2s;
+    letter-spacing: 0.03em;
+  }
+
+  nav a:hover { color: var(--accent); }
+
+  /* MAIN LAYOUT */
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 4rem 2rem 8rem;
+  }
+
+  /* MODULE SECTIONS */
+  .module {
+    margin-bottom: 7rem;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .module.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .module-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .module-number {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 4rem;
+    color: var(--border);
+    line-height: 1;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .module-title-wrap {}
+
+  .module-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+
+  h2 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.8rem;
+    line-height: 1.2;
+    color: var(--text);
+  }
+
+  h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text);
+    margin: 2.5rem 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  h3::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 2px;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  p { margin-bottom: 1rem; color: #b0bec5; }
+
+  /* CODE BLOCKS */
+  .code-block {
+    position: relative;
+    margin: 1.5rem 0;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1.2rem;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .code-lang {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .copy-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 0.25rem 0.7rem;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .copy-btn.copied { color: var(--success); border-color: var(--success); }
+
+  pre {
+    background: var(--code-bg);
+    padding: 1.5rem;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.7;
+  }
+
+  code { font-family: 'JetBrains Mono', monospace; }
+
+  /* Syntax highlight colors */
+  .kw { color: #ff79c6; }
+  .fn { color: #50fa7b; }
+  .st { color: #f1fa8c; }
+  .cm { color: #6272a4; font-style: italic; }
+  .nb { color: #bd93f9; }
+  .op { color: #ff6b35; }
+  .cl { color: #8be9fd; }
+  .dc { color: var(--accent); }
+
+  /* CALLOUTS */
+  .callout {
+    display: flex;
+    gap: 1rem;
+    padding: 1.2rem 1.5rem;
+    border-radius: 4px;
+    margin: 1.5rem 0;
+    border-left: 3px solid;
+  }
+
+  .callout-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+
+  .callout-content { flex: 1; }
+
+  .callout-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+
+  .callout-content p { margin: 0; font-size: 0.9rem; }
+
+  .callout.tip {
+    background: rgba(0,229,180,0.05);
+    border-color: var(--accent);
+  }
+  .callout.tip .callout-title { color: var(--accent); }
+
+  .callout.warn {
+    background: rgba(251,191,36,0.05);
+    border-color: var(--warn);
+  }
+  .callout.warn .callout-title { color: var(--warn); }
+
+  .callout.info {
+    background: rgba(124,106,247,0.06);
+    border-color: var(--accent3);
+  }
+  .callout.info .callout-title { color: var(--accent3); }
+
+  /* EXERCISE CARDS */
+  .exercise-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  @media (max-width: 680px) {
+    .exercise-grid { grid-template-columns: 1fr; }
+  }
+
+  .exercise-card {
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    border-radius: 4px;
+    background: var(--surface);
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .exercise-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--accent2);
+    transform: scaleY(0);
+    transition: transform 0.2s;
+    transform-origin: bottom;
+  }
+
+  .exercise-card:hover { border-color: rgba(255,107,53,0.4); transform: translateY(-2px); }
+  .exercise-card:hover::before { transform: scaleY(1); }
+
+  .exercise-type {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--accent2);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+
+  .exercise-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+
+  .exercise-desc {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.5;
+    font-family: 'Literata', serif;
+  }
+
+  .challenge-card {
+    border: 1px solid rgba(124,106,247,0.3);
+    padding: 1.5rem;
+    border-radius: 4px;
+    background: rgba(124,106,247,0.04);
+    margin: 1rem 0;
+  }
+
+  .challenge-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--accent3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+
+  .challenge-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.4rem;
+    color: var(--text);
+  }
+
+  /* CHECKLIST */
+  .checklist {
+    list-style: none;
+    margin: 1rem 0;
+    padding: 0;
+  }
+
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    padding: 0.4rem 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .checklist li:last-child { border-bottom: none; }
+
+  .check-box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    margin-top: 3px;
+    cursor: pointer;
+    position: relative;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  .check-box.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .check-box.checked::after {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: var(--bg);
+    font-weight: bold;
+  }
+
+  .checklist li.done { color: var(--success); text-decoration: line-through; text-decoration-color: rgba(52,211,153,0.4); }
+
+  /* TECH STACK PILLS */
+  .stack-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 1rem 0;
+  }
+
+  .stack-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.35rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--muted);
+    background: var(--surface);
+  }
+
+  /* PROGRESS BAR */
+  .course-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 2px;
+    background: var(--accent);
+    z-index: 9998;
+    transition: width 0.1s;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* SECTION DIVIDER */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 3rem 0;
+  }
+
+  /* CAPSTONE */
+  .capstone {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3rem;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 4rem;
+  }
+
+  .capstone::before {
+    content: 'CAPSTONE';
+    position: absolute;
+    top: -10px;
+    right: 2rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 5rem;
+    color: rgba(0,229,180,0.03);
+    letter-spacing: 0.1em;
+    pointer-events: none;
+  }
+
+  .capstone-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.6rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .capstone-title span { color: var(--accent); }
+
+  /* RUBRIC TABLE */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.87rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  th {
+    text-align: left;
+    padding: 0.7rem 1rem;
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: #b0bec5;
+    font-family: 'Literata', serif;
+    font-size: 0.87rem;
+  }
+
+  tr:hover td { background: var(--surface); }
+
+  /* INLINE CODE */
+  p code, li code {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 0.1em 0.4em;
+    border-radius: 2px;
+    font-size: 0.83em;
+    color: var(--accent);
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 3rem 4rem;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* ul/ol in content */
+  .content ul, .content ol {
+    margin: 1rem 0 1rem 1.5rem;
+    color: #b0bec5;
+  }
+
+  .content li { margin-bottom: 0.4rem; font-size: 0.93rem; }
+
+  strong { color: var(--text); font-weight: 600; }
+  em { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="course-progress" id="progress"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="grid-lines"></div>
+  <div class="header-eyebrow">// End-to-End Learning Tutorial</div>
+  <h1>Building <span class="accent">Production-Ready</span><br>AI Agents with<br><span class="accent2">Claude Code</span></h1>
+  <p class="header-desc">A comprehensive, hands-on guide to designing, building, and deploying intelligent agents using Anthropic's Claude API, Claude Code CLI, and the broader modern AI tooling ecosystem.</p>
+  <div class="header-meta">
+    <span class="meta-pill highlight">7 Modules</span>
+    <span class="meta-pill">4–6 Hours</span>
+    <span class="meta-pill">Intermediate Level</span>
+    <span class="meta-pill">Python + JavaScript</span>
+    <span class="meta-pill">Capstone Project</span>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">AGENT.DEV</div>
+  <a href="#m1">01 Foundations</a>
+  <a href="#m2">02 Claude Code</a>
+  <a href="#m3">03 Tool Use</a>
+  <a href="#m4">04 Memory</a>
+  <a href="#m5">05 Multi-Agent</a>
+  <a href="#m6">06 MCP</a>
+  <a href="#m7">07 Production</a>
+  <a href="#capstone">Capstone</a>
+</nav>
+
+<!-- MAIN -->
+<main>
+
+<!-- ═══════════════════════════════════ MODULE 1 ═══════════════════════════════════ -->
+<section class="module" id="m1">
+  <div class="module-header">
+    <div class="module-number">01</div>
+    <div class="module-title-wrap">
+      <div class="module-tag">Module 1 · ~45 min</div>
+      <h2>Foundations of AI Agents</h2>
+    </div>
+  </div>
+
+  <div class="content">
+    <p>An AI agent is more than a chatbot — it's an autonomous loop that <strong>perceives its environment, reasons about a goal, takes actions, and observes outcomes</strong>. Understanding this architecture is the foundation for everything else in this course.</p>
+
+    <h3>What Makes an Agent?</h3>
+    <p>The critical distinction between a simple LLM call and an agent is the <strong>feedback loop</strong>. A basic chat sends a prompt, gets a response, done. An agent:</p>
+    <div class="content">
+      <ul>
+        <li>Has access to <strong>tools</strong> — callable functions that interact with the world</li>
+        <li>Operates in a <strong>loop</strong> — it can take many steps to complete a task</li>
+        <li>Has some form of <strong>memory</strong> — context it can draw on and add to</li>
+        <li>Can <strong>self-correct</strong> — if a tool call fails, it reasons about why and tries again</li>
+      </ul>
+    </div>
+
+    <h3>The ReAct Pattern</h3>
+    <p><strong>ReAct</strong> (Reasoning + Acting) is the dominant paradigm for LLM-based agents. The model alternates between <em>Thought</em> (internal reasoning) and <em>Action</em> (tool invocation), observing results at each step.</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">text · ReAct Loop Example</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre>Thought: The user wants to know Apple's current stock price.
+        I should search for real-time data.
+Action: web_search("AAPL stock price today")
+Observation: AAPL is trading at $213.50, up 1.2%
+
+Thought: I have the price. I should also get the 52-week range
+        so the user has useful context.
+Action: web_search("AAPL 52 week high low 2024")
+Observation: 52-week range: $164.08 – $237.23
+
+Thought: I have everything I need. I'll compose a clear answer.
+Final Answer: Apple (AAPL) is currently trading at $213.50 (+1.2%).
+             Its 52-week range is $164.08 to $237.23.</pre>
+    </div>
+
+    <h3>Memory Types</h3>
+    <div class="content">
+      <ul>
+        <li><strong>In-context memory</strong> — the current conversation/messages array. Fast, but limited by the context window (200k tokens for Claude).</li>
+        <li><strong>External vector memory</strong> — embeddings stored in a database like ChromaDB or Pinecone. Semantically searchable, persistent across sessions.</li>
+        <li><strong>Episodic/key-value memory</strong> — structured facts stored in a database. Good for remembering specific user preferences or task outputs.</li>
+      </ul>
+    </div>
+
+    <h3>Minimal Agent Loop in Python</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · minimal_agent.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="kw">import</span> anthropic
+<span class="kw">import</span> json
+
+client = anthropic.<span class="cl">Anthropic</span>()
+
+<span class="cm"># Define tools available to the agent</span>
+tools = [
+    {
+        <span class="st">"name"</span>: <span class="st">"calculator"</span>,
+        <span class="st">"description"</span>: <span class="st">"Performs arithmetic operations. Use for any math."</span>,
+        <span class="st">"input_schema"</span>: {
+            <span class="st">"type"</span>: <span class="st">"object"</span>,
+            <span class="st">"properties"</span>: {
+                <span class="st">"expression"</span>: {
+                    <span class="st">"type"</span>: <span class="st">"string"</span>,
+                    <span class="st">"description"</span>: <span class="st">"Math expression, e.g. '2 + 2' or '100 * 1.07'"</span>
+                }
+            },
+            <span class="st">"required"</span>: [<span class="st">"expression"</span>]
+        }
+    }
+]
+
+<span class="kw">def</span> <span class="fn">execute_tool</span>(name: str, inputs: dict) -> str:
+    <span class="kw">if</span> name == <span class="st">"calculator"</span>:
+        <span class="kw">try</span>:
+            result = <span class="nb">eval</span>(inputs[<span class="st">"expression"</span>])  <span class="cm"># Safe in controlled env</span>
+            <span class="kw">return</span> str(result)
+        <span class="kw">except</span> <span class="cl">Exception</span> <span class="kw">as</span> e:
+            <span class="kw">return</span> <span class="nb">f</span><span class="st">"Error: {e}"</span>
+    <span class="kw">return</span> <span class="st">"Unknown tool"</span>
+
+<span class="kw">def</span> <span class="fn">run_agent</span>(user_input: str):
+    messages = [{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: user_input}]
+
+    <span class="kw">while</span> <span class="nb">True</span>:
+        response = client.messages.<span class="fn">create</span>(
+            model=<span class="st">"claude-opus-4-5"</span>,
+            max_tokens=<span class="nb">1024</span>,
+            tools=tools,
+            messages=messages
+        )
+
+        <span class="cm"># Append assistant response to history</span>
+        messages.append({<span class="st">"role"</span>: <span class="st">"assistant"</span>, <span class="st">"content"</span>: response.content})
+
+        <span class="cm"># Check if agent is done</span>
+        <span class="kw">if</span> response.stop_reason == <span class="st">"end_turn"</span>:
+            <span class="kw">for</span> block <span class="kw">in</span> response.content:
+                <span class="kw">if</span> <span class="nb">hasattr</span>(block, <span class="st">"text"</span>):
+                    <span class="nb">print</span>(<span class="st">f"Agent: {block.text}"</span>)
+            <span class="kw">break</span>
+
+        <span class="cm"># Process tool calls</span>
+        tool_results = []
+        <span class="kw">for</span> block <span class="kw">in</span> response.content:
+            <span class="kw">if</span> block.<span class="nb">type</span> == <span class="st">"tool_use"</span>:
+                <span class="nb">print</span>(<span class="st">f"→ Calling {block.name}({block.input})"</span>)
+                result = <span class="fn">execute_tool</span>(block.name, block.input)
+                <span class="nb">print</span>(<span class="st">f"← Result: {result}"</span>)
+                tool_results.append({
+                    <span class="st">"type"</span>: <span class="st">"tool_result"</span>,
+                    <span class="st">"tool_use_id"</span>: block.id,
+                    <span class="st">"content"</span>: result
+                })
+
+        <span class="cm"># Feed tool results back into conversation</span>
+        messages.append({<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: tool_results})
+
+<span class="cm"># Run it</span>
+<span class="fn">run_agent</span>(<span class="st">"What is (847 * 23) + (1099 / 7)? Show your work."</span>)</pre>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <div class="callout-title">Pro Tip</div>
+        <p>Always add the assistant's response to your <code>messages</code> array before sending tool results back. Claude uses the full history to maintain coherent reasoning across multiple tool calls.</p>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <div class="callout-title">Common Mistake</div>
+        <p>Forgetting to handle <code>stop_reason == "tool_use"</code> vs <code>"end_turn"</code>. If you break the loop early, the agent never completes multi-step tasks. Always check the stop reason explicitly.</p>
+      </div>
+    </div>
+
+    <h3>Exercises</h3>
+    <div class="exercise-grid">
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 1.1</div>
+        <div class="exercise-title">Calculator Agent</div>
+        <div class="exercise-desc">Extend the minimal agent with <code>add</code>, <code>subtract</code>, <code>multiply</code>, <code>divide</code>, and <code>power</code> as separate tools. Have the agent solve a compound word problem requiring 3+ tool calls.</div>
+      </div>
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 1.2</div>
+        <div class="exercise-title">Dictionary Agent</div>
+        <div class="exercise-desc">Add a <code>lookup_word</code> tool that searches a local JSON dictionary file. Ask the agent to define three technical terms and use each in a sentence.</div>
+      </div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-tag">⭐ Challenge</div>
+      <div class="challenge-title">Implement a token-usage tracker</div>
+      <p style="font-size:0.87rem;color:var(--muted);margin-top:0.4rem;">Log input/output tokens at each step of the loop. Calculate and display the total cost per agent run using Claude's published pricing. Add a <code>max_cost</code> parameter that stops the agent if it exceeds a budget.</p>
+    </div>
+
+    <h3>Module 1 Checklist</h3>
+    <ul class="checklist" id="cl1">
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> I understand the perceive → reason → act → observe loop</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> I can explain ReAct and why it enables complex reasoning</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> I've run the minimal agent loop and observed tool calls in my terminal</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> I completed Exercise 1.1 or 1.2</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ MODULE 2 ═══════════════════════════════════ -->
+<section class="module" id="m2">
+  <div class="module-header">
+    <div class="module-number">02</div>
+    <div class="module-title-wrap">
+      <div class="module-tag">Module 2 · ~45 min</div>
+      <h2>Claude Code as an Agent Platform</h2>
+    </div>
+  </div>
+
+  <div class="content">
+    <p>Claude Code is Anthropic's CLI-based agentic coding tool. Unlike the raw API, Claude Code operates with persistent file access, shell execution, and a built-in understanding of software projects. It turns your terminal into an autonomous engineering partner.</p>
+
+    <h3>Installation & Setup</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">bash · setup</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="cm"># Prerequisites: Node.js 18+</span>
+npm install -g @anthropic-ai/claude-code
+
+<span class="cm"># Authenticate with your Anthropic API key</span>
+claude auth login
+
+<span class="cm"># Verify installation</span>
+claude --version
+
+<span class="cm"># Start an interactive session in your project</span>
+<span class="nb">cd</span> my-project
+claude
+
+<span class="cm"># Or run a single autonomous task (non-interactive)</span>
+claude --print <span class="st">"Add docstrings to all Python functions in ./src"</span></pre>
+    </div>
+
+    <div class="callout info">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-content">
+        <div class="callout-title">Architecture Note</div>
+        <p>Claude Code uses <strong>computer use</strong> capabilities internally — it can read files, run shell commands, search the web, and edit code autonomously. It decides which tools to invoke based on your natural-language task description.</p>
+      </div>
+    </div>
+
+    <h3>Key CLI Flags</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">bash · common flags</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="cm"># Non-interactive (pipe-friendly, great for CI)</span>
+claude --print <span class="st">"task description"</span>
+
+<span class="cm"># Allow all file operations without confirmation prompts</span>
+claude --dangerously-skip-permissions
+
+<span class="cm"># Specify a model</span>
+claude --model claude-opus-4-5
+
+<span class="cm"># Continue the most recent session</span>
+claude --continue
+
+<span class="cm"># Resume a specific session by ID</span>
+claude --resume &lt;session-id&gt;
+
+<span class="cm"># Output as JSON (useful for scripting)</span>
+claude --output-format json --print <span class="st">"analyze this codebase"</span></pre>
+    </div>
+
+    <h3>Custom Slash Commands</h3>
+    <p>You can create reusable slash commands for your team by adding Markdown files to <code>.claude/commands/</code>. These become available as <code>/command-name</code> in any Claude Code session within that project.</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">markdown · .claude/commands/security-review.md</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre>Review the provided code for security vulnerabilities.
+
+Check specifically for:
+- SQL injection risks
+- Unvalidated user inputs
+- Hardcoded credentials or secrets
+- Insecure dependencies (cross-reference with known CVEs)
+- Missing authentication/authorization checks
+- Sensitive data exposure in logs or errors
+
+For each issue found:
+1. Describe the vulnerability clearly
+2. Show the exact vulnerable code snippet
+3. Provide a corrected version
+4. Assign a severity (Critical / High / Medium / Low)
+
+Format the output as a structured security report.</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">bash · usage</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="cm"># Use your custom command in a session</span>
+/security-review src/api/auth.py
+
+<span class="cm"># Pass a file argument to a command</span>
+/security-review $ARGUMENTS</pre>
+    </div>
+
+    <h3>CI/CD Integration (GitHub Actions)</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">yaml · .github/workflows/claude-review.yml</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="dc">name</span>: AI Code Review
+<span class="dc">on</span>:
+  pull_request:
+    types: [opened, synchronize]
+
+<span class="dc">jobs</span>:
+  <span class="dc">review</span>:
+    <span class="dc">runs-on</span>: ubuntu-latest
+    <span class="dc">steps</span>:
+      - <span class="dc">uses</span>: actions/checkout@v4
+        <span class="dc">with</span>:
+          <span class="dc">fetch-depth</span>: 0
+
+      - <span class="dc">name</span>: Setup Node
+        <span class="dc">uses</span>: actions/setup-node@v4
+        <span class="dc">with</span>:
+          <span class="dc">node-version</span>: '20'
+
+      - <span class="dc">name</span>: Install Claude Code
+        <span class="dc">run</span>: npm install -g @anthropic-ai/claude-code
+
+      - <span class="dc">name</span>: Run AI Review
+        <span class="dc">env</span>:
+          <span class="dc">ANTHROPIC_API_KEY</span>: ${{ secrets.ANTHROPIC_API_KEY }}
+        <span class="dc">run</span>: |
+          DIFF=$(git diff origin/main...HEAD)
+          claude --print --dangerously-skip-permissions \
+            "Review this PR diff for bugs, security issues, and code quality:
+
+          $DIFF
+
+          Be concise. Flag only significant issues."</pre>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <div class="callout-title">Pro Tip</div>
+        <p>Use <code>--output-format json</code> in CI pipelines to parse Claude's response programmatically. You can then post structured review comments directly to the PR via the GitHub API.</p>
+      </div>
+    </div>
+
+    <h3>Exercises</h3>
+    <div class="exercise-grid">
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 2.1</div>
+        <div class="exercise-title">Autonomous Refactor</div>
+        <div class="exercise-desc">Point Claude Code at a Python file with poor variable names and no docstrings. Ask it to refactor autonomously. Review the git diff to understand what changed and why.</div>
+      </div>
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 2.2</div>
+        <div class="exercise-title">Team Slash Command</div>
+        <div class="exercise-desc">Create a <code>/changelog</code> command that generates a formatted CHANGELOG entry from recent git commit messages. Test it on your own repo.</div>
+      </div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-tag">⭐ Challenge</div>
+      <div class="challenge-title">Headless Testing Pipeline</div>
+      <p style="font-size:0.87rem;color:var(--muted);margin-top:0.4rem;">Write a GitHub Actions workflow that uses Claude Code to automatically generate unit tests for any new function added in a PR. Post the generated tests as a file artifact on the workflow run.</p>
+    </div>
+
+    <h3>Module 2 Checklist</h3>
+    <ul class="checklist">
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Claude Code installed and authenticated</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Successfully ran a non-interactive task with <code>--print</code></li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Created at least one custom slash command</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Understand how to use Claude Code in CI/CD</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ MODULE 3 ═══════════════════════════════════ -->
+<section class="module" id="m3">
+  <div class="module-header">
+    <div class="module-number">03</div>
+    <div class="module-title-wrap">
+      <div class="module-tag">Module 3 · ~60 min</div>
+      <h2>Tool Use &amp; Function Calling</h2>
+    </div>
+  </div>
+
+  <div class="content">
+    <p>The quality of your agent is directly tied to the quality of your tool definitions. A well-designed tool schema is the difference between an agent that reliably accomplishes tasks and one that constantly makes wrong function calls.</p>
+
+    <h3>Tool Design Principles</h3>
+    <div class="content">
+      <ul>
+        <li><strong>One clear responsibility per tool.</strong> Never bundle unrelated actions.</li>
+        <li><strong>Descriptions are prompts.</strong> Claude reads them to decide when to call the tool. Write them like instructions, not labels.</li>
+        <li><strong>Specify constraints in descriptions.</strong> "Only use when you need real-time data" prevents unnecessary calls.</li>
+        <li><strong>Return structured, parseable responses.</strong> JSON is better than freeform text for tool outputs.</li>
+      </ul>
+    </div>
+
+    <h3>Production Tool Definitions</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · tools/definitions.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre>FILE_TOOLS = [
+    {
+        <span class="st">"name"</span>: <span class="st">"read_file"</span>,
+        <span class="st">"description"</span>: (
+            <span class="st">"Read the contents of a file at the given path. "</span>
+            <span class="st">"Use when you need to inspect code, configuration, or data files. "</span>
+            <span class="st">"Returns the raw file content as a string."</span>
+        ),
+        <span class="st">"input_schema"</span>: {
+            <span class="st">"type"</span>: <span class="st">"object"</span>,
+            <span class="st">"properties"</span>: {
+                <span class="st">"path"</span>: {
+                    <span class="st">"type"</span>: <span class="st">"string"</span>,
+                    <span class="st">"description"</span>: <span class="st">"Relative or absolute path to the file"</span>
+                },
+                <span class="st">"encoding"</span>: {
+                    <span class="st">"type"</span>: <span class="st">"string"</span>,
+                    <span class="st">"default"</span>: <span class="st">"utf-8"</span>,
+                    <span class="st">"description"</span>: <span class="st">"File encoding (default: utf-8)"</span>
+                }
+            },
+            <span class="st">"required"</span>: [<span class="st">"path"</span>]
+        }
+    },
+    {
+        <span class="st">"name"</span>: <span class="st">"write_file"</span>,
+        <span class="st">"description"</span>: (
+            <span class="st">"Write or overwrite a file with the given content. "</span>
+            <span class="st">"Creates the file if it doesn't exist, including parent directories. "</span>
+            <span class="st">"Use for saving code, reports, or any generated content to disk."</span>
+        ),
+        <span class="st">"input_schema"</span>: {
+            <span class="st">"type"</span>: <span class="st">"object"</span>,
+            <span class="st">"properties"</span>: {
+                <span class="st">"path"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>, <span class="st">"description"</span>: <span class="st">"Destination file path"</span>},
+                <span class="st">"content"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>, <span class="st">"description"</span>: <span class="st">"Content to write"</span>},
+                <span class="st">"append"</span>: {<span class="st">"type"</span>: <span class="st">"boolean"</span>, <span class="st">"default"</span>: <span class="nb">False</span>, <span class="st">"description"</span>: <span class="st">"Append instead of overwrite"</span>}
+            },
+            <span class="st">"required"</span>: [<span class="st">"path"</span>, <span class="st">"content"</span>]
+        }
+    },
+    {
+        <span class="st">"name"</span>: <span class="st">"list_directory"</span>,
+        <span class="st">"description"</span>: (
+            <span class="st">"List all files and subdirectories at the given path. "</span>
+            <span class="st">"Use before reading files to understand project structure."</span>
+        ),
+        <span class="st">"input_schema"</span>: {
+            <span class="st">"type"</span>: <span class="st">"object"</span>,
+            <span class="st">"properties"</span>: {
+                <span class="st">"path"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>, <span class="st">"description"</span>: <span class="st">"Directory to list"</span>},
+                <span class="st">"recursive"</span>: {<span class="st">"type"</span>: <span class="st">"boolean"</span>, <span class="st">"default"</span>: <span class="nb">False</span>}
+            },
+            <span class="st">"required"</span>: [<span class="st">"path"</span>]
+        }
+    }
+]</pre>
+    </div>
+
+    <h3>Robust Tool Executor</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · tools/executor.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="kw">import</span> os
+<span class="kw">import</span> json
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+
+<span class="kw">def</span> <span class="fn">execute_tool</span>(name: str, inputs: dict) -> dict:
+    <span class="st">"""Execute a tool and return structured result."""</span>
+    <span class="kw">try</span>:
+        <span class="kw">if</span> name == <span class="st">"read_file"</span>:
+            path = <span class="cl">Path</span>(inputs[<span class="st">"path"</span>])
+            <span class="kw">if</span> <span class="kw">not</span> path.exists():
+                <span class="kw">return</span> {<span class="st">"error"</span>: <span class="nb">f</span><span class="st">"File not found: {path}"</span>, <span class="st">"success"</span>: <span class="nb">False</span>}
+            content = path.read_text(encoding=inputs.get(<span class="st">"encoding"</span>, <span class="st">"utf-8"</span>))
+            <span class="kw">return</span> {
+                <span class="st">"content"</span>: content,
+                <span class="st">"size_bytes"</span>: path.stat().st_size,
+                <span class="st">"success"</span>: <span class="nb">True</span>
+            }
+
+        <span class="kw">elif</span> name == <span class="st">"write_file"</span>:
+            path = <span class="cl">Path</span>(inputs[<span class="st">"path"</span>])
+            path.parent.mkdir(parents=<span class="nb">True</span>, exist_ok=<span class="nb">True</span>)
+            mode = <span class="st">"a"</span> <span class="kw">if</span> inputs.get(<span class="st">"append"</span>) <span class="kw">else</span> <span class="st">"w"</span>
+            path.<span class="fn">open</span>(mode).write(inputs[<span class="st">"content"</span>])
+            <span class="kw">return</span> {<span class="st">"path"</span>: str(path), <span class="st">"success"</span>: <span class="nb">True</span>}
+
+        <span class="kw">elif</span> name == <span class="st">"list_directory"</span>:
+            path = <span class="cl">Path</span>(inputs[<span class="st">"path"</span>])
+            <span class="kw">if</span> inputs.get(<span class="st">"recursive"</span>):
+                files = [str(p) <span class="kw">for</span> p <span class="kw">in</span> path.rglob(<span class="st">"*"</span>)]
+            <span class="kw">else</span>:
+                files = [str(p) <span class="kw">for</span> p <span class="kw">in</span> path.iterdir()]
+            <span class="kw">return</span> {<span class="st">"files"</span>: files, <span class="st">"count"</span>: <span class="nb">len</span>(files), <span class="st">"success"</span>: <span class="nb">True</span>}
+
+        <span class="kw">else</span>:
+            <span class="kw">return</span> {<span class="st">"error"</span>: <span class="nb">f</span><span class="st">"Unknown tool: {name}"</span>, <span class="st">"success"</span>: <span class="nb">False</span>}
+
+    <span class="kw">except</span> <span class="cl">Exception</span> <span class="kw">as</span> e:
+        <span class="kw">return</span> {<span class="st">"error"</span>: str(e), <span class="st">"success"</span>: <span class="nb">False</span>}</pre>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <div class="callout-title">Pro Tip</div>
+        <p>Always return a <code>success: bool</code> field in tool outputs. When <code>success</code> is <code>false</code>, Claude will reason about the error and try an alternative approach instead of silently failing.</p>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <div class="callout-title">Common Mistake</div>
+        <p>Using <code>eval()</code> for tool execution in production. Always validate and sanitize tool inputs. For filesystem tools, restrict paths to a designated sandbox directory to prevent path traversal attacks.</p>
+      </div>
+    </div>
+
+    <h3>Exercises</h3>
+    <div class="exercise-grid">
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 3.1</div>
+        <div class="exercise-title">File Manager Agent</div>
+        <div class="exercise-desc">Build a complete agent using the three file tools above. Give it a task: "Create a project scaffold for a FastAPI app with folders for routes, models, and tests. Add a README."</div>
+      </div>
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 3.2</div>
+        <div class="exercise-title">Multi-Tool Orchestration</div>
+        <div class="exercise-desc">Add a <code>run_shell_command</code> tool and a <code>web_search</code> tool stub. Ask the agent: "Check which Python packages are installed and look up if any have known CVEs."</div>
+      </div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-tag">⭐ Challenge</div>
+      <div class="challenge-title">Tool Result Caching</div>
+      <p style="font-size:0.87rem;color:var(--muted);margin-top:0.4rem;">Implement an LRU cache for tool results using <code>functools.lru_cache</code> or a custom dict. Cache <code>read_file</code> and <code>list_directory</code> results. Measure the reduction in tool calls on a task that reads the same files multiple times.</p>
+    </div>
+
+    <h3>Module 3 Checklist</h3>
+    <ul class="checklist">
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Can write a complete JSON Schema tool definition from scratch</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Implemented error handling in tool executor (success/error pattern)</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Built an agent that uses 3+ tools in sequence to complete a task</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Understand the difference between tool descriptions and parameter descriptions</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ MODULE 4 ═══════════════════════════════════ -->
+<section class="module" id="m4">
+  <div class="module-header">
+    <div class="module-number">04</div>
+    <div class="module-title-wrap">
+      <div class="module-tag">Module 4 · ~60 min</div>
+      <h2>Memory &amp; State Management</h2>
+    </div>
+  </div>
+
+  <div class="content">
+    <p>Claude has no memory between API calls. Every agent run starts fresh unless you explicitly inject context. This module covers how to give agents persistent, searchable memory across sessions.</p>
+
+    <h3>Vector Memory with ChromaDB</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">bash · install</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre>pip install chromadb anthropic</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · memory/vector_store.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="kw">import</span> chromadb
+<span class="kw">import</span> anthropic
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime
+
+client = anthropic.<span class="cl">Anthropic</span>()
+chroma = chromadb.<span class="fn">PersistentClient</span>(path=<span class="st">"./agent_memory"</span>)
+collection = chroma.<span class="fn">get_or_create_collection</span>(
+    name=<span class="st">"agent_memories"</span>,
+    metadata={<span class="st">"hnsw:space"</span>: <span class="st">"cosine"</span>}
+)
+
+<span class="kw">def</span> <span class="fn">get_embedding</span>(text: str) -> list[float]:
+    <span class="st">"""Use Claude's embedding model via Voyage AI (recommended)
+    or fall back to a simple hash-based approach for demos."""</span>
+    <span class="cm"># Production: use voyage-3 or text-embedding-3-small</span>
+    <span class="cm"># Demo: we'll use a placeholder (replace with real embeddings)</span>
+    response = client.messages.<span class="fn">create</span>(
+        model=<span class="st">"claude-haiku-4-5"</span>,
+        max_tokens=<span class="nb">10</span>,
+        system=<span class="st">"Return only a JSON array of 10 numbers between -1 and 1 representing a mock embedding. No explanation."</span>,
+        messages=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: text}]
+    )
+    <span class="kw">import</span> json
+    <span class="kw">return</span> json.loads(response.content[<span class="nb">0</span>].text)
+
+<span class="kw">def</span> <span class="fn">remember</span>(text: str, metadata: dict = None):
+    <span class="st">"""Store a memory with optional metadata tags."""</span>
+    embedding = <span class="fn">get_embedding</span>(text)
+    doc_id = <span class="nb">f</span><span class="st">"mem_{datetime.now().timestamp()}"</span>
+    meta = {<span class="st">"timestamp"</span>: datetime.now().isoformat()}
+    <span class="kw">if</span> metadata:
+        meta.update(metadata)
+    collection.<span class="fn">add</span>(
+        documents=[text],
+        embeddings=[embedding],
+        metadatas=[meta],
+        ids=[doc_id]
+    )
+    <span class="nb">print</span>(<span class="nb">f</span><span class="st">"🧠 Stored memory: {text[:60]}..."</span>)
+
+<span class="kw">def</span> <span class="fn">recall</span>(query: str, n_results: int = <span class="nb">3</span>) -> list[str]:
+    <span class="st">"""Retrieve semantically similar memories."""</span>
+    embedding = <span class="fn">get_embedding</span>(query)
+    results = collection.<span class="fn">query</span>(
+        query_embeddings=[embedding],
+        n_results=min(n_results, collection.<span class="fn">count</span>())
+    )
+    <span class="kw">return</span> results[<span class="st">"documents"</span>][<span class="nb">0</span>] <span class="kw">if</span> results[<span class="st">"documents"</span>] <span class="kw">else</span> []
+
+<span class="kw">def</span> <span class="fn">agent_with_memory</span>(user_input: str):
+    <span class="st">"""Agent that injects relevant memories into each request."""</span>
+    relevant = <span class="fn">recall</span>(user_input)
+    memory_context = <span class="st">""</span>
+    <span class="kw">if</span> relevant:
+        memory_context = <span class="st">"Relevant memories from past sessions:\n"</span>
+        memory_context += <span class="st">"\n"</span>.join(<span class="nb">f</span><span class="st">"- {m}"</span> <span class="kw">for</span> m <span class="kw">in</span> relevant)
+        memory_context += <span class="st">"\n\n"</span>
+
+    response = client.messages.<span class="fn">create</span>(
+        model=<span class="st">"claude-opus-4-5"</span>,
+        max_tokens=<span class="nb">1024</span>,
+        system=<span class="nb">f</span><span class="st">"You are a helpful assistant with memory. {memory_context}"</span>,
+        messages=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: user_input}]
+    )
+
+    answer = response.content[<span class="nb">0</span>].text
+    <span class="cm"># Store this exchange as a new memory</span>
+    <span class="fn">remember</span>(<span class="nb">f</span><span class="st">"User asked: {user_input} | Agent responded: {answer[:200]}"</span>)
+    <span class="kw">return</span> answer</pre>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <div class="callout-title">Pro Tip</div>
+        <p>For production, use <strong>Voyage AI</strong> (Anthropic's recommended embedding partner) via <code>voyageai</code> package. Their <code>voyage-3</code> model produces much better semantic similarity than generic embeddings for code and technical content.</p>
+      </div>
+    </div>
+
+    <h3>Context Summarization Strategy</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · memory/summarizer.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre>MAX_CONTEXT_TOKENS = <span class="nb">150_000</span>  <span class="cm"># Leave 50k for response</span>
+SUMMARIZE_AT = <span class="nb">100_000</span>
+
+<span class="kw">def</span> <span class="fn">maybe_summarize</span>(messages: list, current_tokens: int) -> list:
+    <span class="st">"""Compress old messages if context window is filling up."""</span>
+    <span class="kw">if</span> current_tokens &lt; SUMMARIZE_AT:
+        <span class="kw">return</span> messages
+
+    <span class="cm"># Keep the last 10 messages verbatim; summarize everything before</span>
+    recent = messages[-<span class="nb">10</span>:]
+    old = messages[:-<span class="nb">10</span>]
+
+    summary_response = client.messages.<span class="fn">create</span>(
+        model=<span class="st">"claude-haiku-4-5"</span>,  <span class="cm"># Use fast/cheap model for summarization</span>
+        max_tokens=<span class="nb">1000</span>,
+        system=<span class="st">"Summarize the following conversation history into a concise set of key facts and decisions. Preserve all important technical details."</span>,
+        messages=[{
+            <span class="st">"role"</span>: <span class="st">"user"</span>,
+            <span class="st">"content"</span>: <span class="nb">f</span><span class="st">"Conversation to summarize:\n{old}"</span>
+        }]
+    )
+
+    summary_text = summary_response.content[<span class="nb">0</span>].text
+    summary_message = {
+        <span class="st">"role"</span>: <span class="st">"user"</span>,
+        <span class="st">"content"</span>: <span class="nb">f</span><span class="st">"[CONVERSATION SUMMARY]\n{summary_text}\n[END SUMMARY]"</span>
+    }
+
+    <span class="nb">print</span>(<span class="st">f"📦 Compressed {len(old)} messages into summary"</span>)
+    <span class="kw">return</span> [summary_message] + recent</pre>
+    </div>
+
+    <h3>Exercises</h3>
+    <div class="exercise-grid">
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 4.1</div>
+        <div class="exercise-title">Preference-Remembering Agent</div>
+        <div class="exercise-desc">Build an agent that remembers user preferences (e.g., "I prefer Python over Ruby", "I work in Pacific Time"). Verify recall works across separate Python process runs (using PersistentClient).</div>
+      </div>
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 4.2</div>
+        <div class="exercise-title">Memory-Augmented Q&A</div>
+        <div class="exercise-desc">Load a corpus of technical documents into ChromaDB. Build a RAG agent that retrieves relevant chunks before answering user questions, citing which document sections it used.</div>
+      </div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-tag">⭐ Challenge</div>
+      <div class="challenge-title">Smart Memory Pruning</div>
+      <p style="font-size:0.87rem;color:var(--muted);margin-top:0.4rem;">Implement a <code>forget_old_memories</code> function that deletes memories older than 30 days, and a <code>consolidate_memories</code> function that merges semantically similar memories (cosine similarity > 0.92) into a single entry using Claude.</p>
+    </div>
+
+    <h3>Module 4 Checklist</h3>
+    <ul class="checklist">
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> ChromaDB installed and storing embeddings successfully</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Memory persists between Python process restarts</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Agent retrieves relevant context before answering</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Implemented or understand the summarization strategy</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ MODULE 5 ═══════════════════════════════════ -->
+<section class="module" id="m5">
+  <div class="module-header">
+    <div class="module-number">05</div>
+    <div class="module-title-wrap">
+      <div class="module-tag">Module 5 · ~60 min</div>
+      <h2>Multi-Agent Systems</h2>
+    </div>
+  </div>
+
+  <div class="content">
+    <p>Complex tasks benefit from decomposition. Rather than asking one agent to do everything, you can design a <strong>network of specialized agents</strong> — each with its own system prompt, tools, and context — coordinated by an orchestrator.</p>
+
+    <h3>Orchestrator–Worker Architecture</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · agents/multi_agent.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="kw">import</span> anthropic
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+
+client = anthropic.<span class="cl">Anthropic</span>()
+
+<span class="dc">@dataclass</span>
+<span class="kw">class</span> <span class="cl">AgentResult</span>:
+    agent: str
+    output: str
+    success: bool
+    tokens_used: int
+
+<span class="kw">def</span> <span class="fn">run_specialist</span>(
+    name: str,
+    system_prompt: str,
+    task: str,
+    tools: list = None
+) -> <span class="cl">AgentResult</span>:
+    <span class="st">"""Run a specialist agent with a specific system prompt."""</span>
+    kwargs = {
+        <span class="st">"model"</span>: <span class="st">"claude-opus-4-5"</span>,
+        <span class="st">"max_tokens"</span>: <span class="nb">2048</span>,
+        <span class="st">"system"</span>: system_prompt,
+        <span class="st">"messages"</span>: [{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: task}]
+    }
+    <span class="kw">if</span> tools:
+        kwargs[<span class="st">"tools"</span>] = tools
+
+    response = client.messages.<span class="fn">create</span>(**kwargs)
+    text = <span class="st">""</span>.join(b.text <span class="kw">for</span> b <span class="kw">in</span> response.content <span class="kw">if</span> <span class="nb">hasattr</span>(b, <span class="st">"text"</span>))
+
+    <span class="kw">return</span> <span class="cl">AgentResult</span>(
+        agent=name,
+        output=text,
+        success=<span class="nb">True</span>,
+        tokens_used=response.usage.input_tokens + response.usage.output_tokens
+    )
+
+<span class="cm"># ── Specialist Agents ──────────────────────────────────────────────────</span>
+
+<span class="kw">def</span> <span class="fn">researcher</span>(topic: str) -> str:
+    result = <span class="fn">run_specialist</span>(
+        name=<span class="st">"Researcher"</span>,
+        system_prompt=<span class="st">"""You are a research specialist. Your job is to gather 
+        comprehensive, factual information on any given topic. Structure 
+        your output as: Key Facts, Statistics, Recent Developments, 
+        and Sources to verify."""</span>,
+        task=<span class="nb">f</span><span class="st">"Research the following topic thoroughly: {topic}"</span>
+    )
+    <span class="nb">print</span>(<span class="nb">f</span><span class="st">"✅ Researcher: {result.tokens_used} tokens"</span>)
+    <span class="kw">return</span> result.output
+
+<span class="kw">def</span> <span class="fn">writer</span>(research: str, format: str = <span class="st">"blog post"</span>) -> str:
+    result = <span class="fn">run_specialist</span>(
+        name=<span class="st">"Writer"</span>,
+        system_prompt=<span class="st">"""You are a professional technical writer. Transform 
+        research into clear, engaging content. Use concrete examples, 
+        avoid jargon where possible, and maintain a confident voice."""</span>,
+        task=<span class="nb">f</span><span class="st">"Write a {format} based on this research:\n\n{research}"</span>
+    )
+    <span class="nb">print</span>(<span class="nb">f</span><span class="st">"✅ Writer: {result.tokens_used} tokens"</span>)
+    <span class="kw">return</span> result.output
+
+<span class="kw">def</span> <span class="fn">editor</span>(draft: str) -> str:
+    result = <span class="fn">run_specialist</span>(
+        name=<span class="st">"Editor"</span>,
+        system_prompt=<span class="st">"""You are a senior editor. Review drafts for:
+        1. Factual accuracy and logical flow
+        2. Clarity and concision (cut unnecessary words)
+        3. Grammar and style consistency
+        4. Strong opening and memorable conclusion
+        Return the improved version directly with no commentary."""</span>,
+        task=<span class="nb">f</span><span class="st">"Edit and improve this draft:\n\n{draft}"</span>
+    )
+    <span class="nb">print</span>(<span class="nb">f</span><span class="st">"✅ Editor: {result.tokens_used} tokens"</span>)
+    <span class="kw">return</span> result.output
+
+<span class="cm"># ── Orchestrator ───────────────────────────────────────────────────────</span>
+
+<span class="kw">def</span> <span class="fn">content_pipeline</span>(topic: str, format: str = <span class="st">"blog post"</span>) -> str:
+    <span class="nb">print</span>(<span class="nb">f</span><span class="st">"\n🚀 Starting content pipeline for: {topic}\n"</span>)
+
+    research = <span class="fn">researcher</span>(topic)
+    draft = <span class="fn">writer</span>(research, format)
+    final = <span class="fn">editor</span>(draft)
+
+    <span class="nb">print</span>(<span class="st">"\n✨ Pipeline complete!"</span>)
+    <span class="kw">return</span> final
+
+<span class="cm"># Run it</span>
+output = <span class="fn">content_pipeline</span>(
+    topic=<span class="st">"The impact of MCP (Model Context Protocol) on AI agent development"</span>,
+    format=<span class="st">"technical blog post"</span>
+)
+<span class="nb">print</span>(output)</pre>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <div class="callout-title">Pro Tip</div>
+        <p>Use <strong>claude-haiku-4-5</strong> for fast, cheap specialist agents that do simple transformations (summarize, format, validate). Reserve <strong>claude-opus-4-5</strong> for the orchestrator and complex reasoning tasks. This can reduce costs by 10–20x.</p>
+      </div>
+    </div>
+
+    <h3>Parallel Agent Execution</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · parallel agents</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="kw">import</span> asyncio
+<span class="kw">import</span> anthropic
+
+async_client = anthropic.<span class="cl">AsyncAnthropic</span>()
+
+<span class="kw">async def</span> <span class="fn">run_parallel_research</span>(topics: list[str]) -> list[str]:
+    <span class="st">"""Research multiple topics concurrently."""</span>
+    <span class="kw">async def</span> <span class="fn">research_one</span>(topic: str) -> str:
+        response = <span class="kw">await</span> async_client.messages.<span class="fn">create</span>(
+            model=<span class="st">"claude-haiku-4-5"</span>,
+            max_tokens=<span class="nb">500</span>,
+            messages=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="nb">f</span><span class="st">"Summarize key facts about: {topic}"</span>}]
+        )
+        <span class="kw">return</span> response.content[<span class="nb">0</span>].text
+
+    results = <span class="kw">await</span> asyncio.<span class="fn">gather</span>(*[<span class="fn">research_one</span>(t) <span class="kw">for</span> t <span class="kw">in</span> topics])
+    <span class="kw">return</span> <span class="nb">list</span>(results)
+
+<span class="cm"># Research 5 topics in parallel instead of sequentially</span>
+topics = [<span class="st">"LangChain"</span>, <span class="st">"LlamaIndex"</span>, <span class="st">"AutoGen"</span>, <span class="st">"CrewAI"</span>, <span class="st">"Claude Code"</span>]
+results = asyncio.<span class="fn">run</span>(<span class="fn">run_parallel_research</span>(topics))</pre>
+    </div>
+
+    <h3>Exercises</h3>
+    <div class="exercise-grid">
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 5.1</div>
+        <div class="exercise-title">Code Review Pipeline</div>
+        <div class="exercise-desc">Build a 3-agent pipeline: Analyzer (finds issues) → Fixer (patches code) → Tester (writes unit tests for the fix). Run it on a Python function with an intentional bug.</div>
+      </div>
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 5.2</div>
+        <div class="exercise-title">Parallel Research Synthesis</div>
+        <div class="exercise-desc">Use <code>asyncio.gather</code> to research 5 topics in parallel, then pass all results to a synthesis agent that finds connections and produces a unified report.</div>
+      </div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-tag">⭐ Challenge</div>
+      <div class="challenge-title">Supervisor with Retry Logic</div>
+      <p style="font-size:0.87rem;color:var(--muted);margin-top:0.4rem;">Add a <code>Supervisor</code> agent that evaluates each specialist's output against a quality rubric (1-10 score). If score &lt; 7, it re-runs that agent with specific improvement instructions. Cap retries at 3 per agent.</p>
+    </div>
+
+    <h3>Module 5 Checklist</h3>
+    <ul class="checklist">
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Built a working orchestrator → worker pipeline</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Used different models for different roles to optimize cost</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Implemented or understand async parallel execution</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Each agent has a focused, single-responsibility system prompt</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ MODULE 6 ═══════════════════════════════════ -->
+<section class="module" id="m6">
+  <div class="module-header">
+    <div class="module-number">06</div>
+    <div class="module-title-wrap">
+      <div class="module-tag">Module 6 · ~60 min</div>
+      <h2>MCP — Model Context Protocol</h2>
+    </div>
+  </div>
+
+  <div class="content">
+    <p>MCP is an open protocol that standardizes how AI models connect to external data sources and tools. Think of it as <strong>USB-C for AI integrations</strong> — one standard connector that works across all compatible apps and services.</p>
+
+    <h3>Core Concepts</h3>
+    <div class="content">
+      <ul>
+        <li><strong>MCP Server</strong> — a process that exposes tools, resources, and prompts via the MCP protocol</li>
+        <li><strong>MCP Client</strong> — a host app (like Claude Code) that connects to MCP servers</li>
+        <li><strong>Tools</strong> — callable functions the LLM can invoke via the server</li>
+        <li><strong>Resources</strong> — data sources the LLM can read (files, databases, APIs)</li>
+      </ul>
+    </div>
+
+    <h3>Connecting MCP Servers to Claude Code</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">json · ~/.claude/mcp.json (global config)</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre>{
+  <span class="dc">"mcpServers"</span>: {
+    <span class="dc">"filesystem"</span>: {
+      <span class="dc">"command"</span>: <span class="st">"npx"</span>,
+      <span class="dc">"args"</span>: [<span class="st">"-y"</span>, <span class="st">"@modelcontextprotocol/server-filesystem"</span>, <span class="st">"/workspace"</span>]
+    },
+    <span class="dc">"github"</span>: {
+      <span class="dc">"command"</span>: <span class="st">"npx"</span>,
+      <span class="dc">"args"</span>: [<span class="st">"-y"</span>, <span class="st">"@modelcontextprotocol/server-github"</span>],
+      <span class="dc">"env"</span>: {
+        <span class="dc">"GITHUB_TOKEN"</span>: <span class="st">"${GITHUB_TOKEN}"</span>
+      }
+    },
+    <span class="dc">"postgres"</span>: {
+      <span class="dc">"command"</span>: <span class="st">"npx"</span>,
+      <span class="dc">"args"</span>: [<span class="st">"-y"</span>, <span class="st">"@modelcontextprotocol/server-postgres"</span>],
+      <span class="dc">"env"</span>: {
+        <span class="dc">"POSTGRES_URL"</span>: <span class="st">"postgresql://user:pass@localhost/mydb"</span>
+      }
+    },
+    <span class="dc">"slack"</span>: {
+      <span class="dc">"command"</span>: <span class="st">"npx"</span>,
+      <span class="dc">"args"</span>: [<span class="st">"-y"</span>, <span class="st">"@modelcontextprotocol/server-slack"</span>],
+      <span class="dc">"env"</span>: {
+        <span class="dc">"SLACK_BOT_TOKEN"</span>: <span class="st">"${SLACK_BOT_TOKEN}"</span>
+      }
+    }
+  }
+}</pre>
+    </div>
+
+    <h3>Building a Custom MCP Server (Python)</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">bash · install MCP SDK</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre>pip install mcp</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · mcp_server/weather_server.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="kw">import</span> asyncio
+<span class="kw">import</span> httpx
+<span class="kw">from</span> mcp.server <span class="kw">import</span> Server
+<span class="kw">from</span> mcp.server.stdio <span class="kw">import</span> stdio_server
+<span class="kw">import</span> mcp.types <span class="kw">as</span> types
+
+server = <span class="cl">Server</span>(<span class="st">"weather-tools"</span>)
+
+<span class="dc">@server.list_tools()</span>
+<span class="kw">async def</span> <span class="fn">handle_list_tools</span>() -> list[types.Tool]:
+    <span class="kw">return</span> [
+        types.<span class="cl">Tool</span>(
+            name=<span class="st">"get_current_weather"</span>,
+            description=<span class="st">"Get current weather conditions for any city. Returns temperature, conditions, humidity, and wind speed."</span>,
+            inputSchema={
+                <span class="st">"type"</span>: <span class="st">"object"</span>,
+                <span class="st">"properties"</span>: {
+                    <span class="st">"city"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>, <span class="st">"description"</span>: <span class="st">"City name, e.g. 'London' or 'Tokyo'"</span>},
+                    <span class="st">"units"</span>: {
+                        <span class="st">"type"</span>: <span class="st">"string"</span>,
+                        <span class="st">"enum"</span>: [<span class="st">"celsius"</span>, <span class="st">"fahrenheit"</span>],
+                        <span class="st">"default"</span>: <span class="st">"celsius"</span>
+                    }
+                },
+                <span class="st">"required"</span>: [<span class="st">"city"</span>]
+            }
+        ),
+        types.<span class="cl">Tool</span>(
+            name=<span class="st">"get_forecast"</span>,
+            description=<span class="st">"Get 5-day weather forecast for a city."</span>,
+            inputSchema={
+                <span class="st">"type"</span>: <span class="st">"object"</span>,
+                <span class="st">"properties"</span>: {
+                    <span class="st">"city"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>},
+                    <span class="st">"days"</span>: {<span class="st">"type"</span>: <span class="st">"integer"</span>, <span class="st">"default"</span>: <span class="nb">5</span>, <span class="st">"minimum"</span>: <span class="nb">1</span>, <span class="st">"maximum"</span>: <span class="nb">7</span>}
+                },
+                <span class="st">"required"</span>: [<span class="st">"city"</span>]
+            }
+        )
+    ]
+
+<span class="dc">@server.call_tool()</span>
+<span class="kw">async def</span> <span class="fn">handle_call_tool</span>(name: str, arguments: dict) -> list[types.TextContent]:
+    <span class="kw">async with</span> httpx.<span class="cl">AsyncClient</span>() <span class="kw">as</span> http:
+        <span class="kw">if</span> name == <span class="st">"get_current_weather"</span>:
+            <span class="cm"># Replace with real weather API (e.g., OpenWeatherMap)</span>
+            mock_data = {
+                <span class="st">"city"</span>: arguments[<span class="st">"city"</span>],
+                <span class="st">"temperature"</span>: <span class="nb">22</span>,
+                <span class="st">"conditions"</span>: <span class="st">"partly cloudy"</span>,
+                <span class="st">"humidity"</span>: <span class="nb">65</span>,
+                <span class="st">"wind_speed"</span>: <span class="nb">14</span>
+            }
+            <span class="kw">return</span> [types.<span class="cl">TextContent</span>(type=<span class="st">"text"</span>, text=str(mock_data))]
+
+        <span class="kw">elif</span> name == <span class="st">"get_forecast"</span>:
+            days = arguments.get(<span class="st">"days"</span>, <span class="nb">5</span>)
+            forecast = [{<span class="st">"day"</span>: i+<span class="nb">1</span>, <span class="st">"temp"</span>: <span class="nb">20</span>+i, <span class="st">"conditions"</span>: <span class="st">"sunny"</span>} <span class="kw">for</span> i <span class="kw">in</span> <span class="nb">range</span>(days)]
+            <span class="kw">return</span> [types.<span class="cl">TextContent</span>(type=<span class="st">"text"</span>, text=str(forecast))]
+
+<span class="kw">async def</span> <span class="fn">main</span>():
+    <span class="kw">async with</span> <span class="fn">stdio_server</span>() <span class="kw">as</span> (read, write):
+        <span class="kw">await</span> server.<span class="fn">run</span>(read, write, server.<span class="fn">create_initialization_options</span>())
+
+asyncio.<span class="fn">run</span>(<span class="fn">main</span>())</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">json · register custom server in claude config</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre>{
+  <span class="dc">"mcpServers"</span>: {
+    <span class="dc">"weather"</span>: {
+      <span class="dc">"command"</span>: <span class="st">"python"</span>,
+      <span class="dc">"args"</span>: [<span class="st">"./mcp_server/weather_server.py"</span>]
+    }
+  }
+}</pre>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <div class="callout-title">Common Mistake</div>
+        <p>MCP servers communicate over <strong>stdio</strong> by default, not HTTP. Don't try to call them via fetch/requests. They're child processes spawned and managed by the MCP client (Claude Code).</p>
+      </div>
+    </div>
+
+    <h3>Exercises</h3>
+    <div class="exercise-grid">
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 6.1</div>
+        <div class="exercise-title">GitHub MCP Automation</div>
+        <div class="exercise-desc">Connect the GitHub MCP server to Claude Code. Use it to: list open PRs on a repo, summarize the changes in the most recent PR, and draft a review comment.</div>
+      </div>
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 6.2</div>
+        <div class="exercise-title">Internal API Wrapper</div>
+        <div class="exercise-desc">Wrap a public REST API (e.g., OpenWeatherMap, NewsAPI, or Pokémon API) as a custom MCP server with 2–3 tools. Register it and use it in a Claude Code session.</div>
+      </div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-tag">⭐ Challenge</div>
+      <div class="challenge-title">MCP + Memory Bridge</div>
+      <p style="font-size:0.87rem;color:var(--muted);margin-top:0.4rem;">Build an MCP server that exposes your ChromaDB memory store as tools: <code>store_memory</code>, <code>recall_memories</code>, and <code>list_recent_memories</code>. Connect it to Claude Code so it has persistent memory during coding sessions.</p>
+    </div>
+
+    <h3>Module 6 Checklist</h3>
+    <ul class="checklist">
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> At least one official MCP server connected and working</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Custom MCP server written and registered</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Understand stdio transport vs HTTP transport</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Completed Exercise 6.1 or 6.2</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ MODULE 7 ═══════════════════════════════════ -->
+<section class="module" id="m7">
+  <div class="module-header">
+    <div class="module-number">07</div>
+    <div class="module-title-wrap">
+      <div class="module-tag">Module 7 · ~60 min</div>
+      <h2>Production Deployment</h2>
+    </div>
+  </div>
+
+  <div class="content">
+    <p>A working agent in development is very different from a production-grade agent. This module covers the engineering practices that separate prototypes from reliable, observable, cost-efficient systems.</p>
+
+    <h3>Retry with Exponential Backoff</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · production/resilient_agent.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="kw">import</span> anthropic
+<span class="kw">import</span> logging
+<span class="kw">import</span> time
+<span class="kw">from</span> tenacity <span class="kw">import</span> (
+    retry, stop_after_attempt, wait_exponential,
+    retry_if_exception_type, before_sleep_log
+)
+
+logger = logging.<span class="fn">getLogger</span>(<span class="nb">__name__</span>)
+client = anthropic.<span class="cl">Anthropic</span>()
+
+<span class="dc">@retry</span>(
+    stop=<span class="fn">stop_after_attempt</span>(<span class="nb">3</span>),
+    wait=<span class="fn">wait_exponential</span>(multiplier=<span class="nb">1</span>, min=<span class="nb">4</span>, max=<span class="nb">60</span>),
+    retry=<span class="fn">retry_if_exception_type</span>((
+        anthropic.<span class="cl">RateLimitError</span>,
+        anthropic.<span class="cl">APIConnectionError</span>,
+        anthropic.<span class="cl">InternalServerError</span>
+    )),
+    before_sleep=<span class="fn">before_sleep_log</span>(logger, logging.WARNING)
+)
+<span class="kw">def</span> <span class="fn">resilient_call</span>(messages: list, tools: list = None, model: str = <span class="st">"claude-opus-4-5"</span>):
+    kwargs = {
+        <span class="st">"model"</span>: model,
+        <span class="st">"max_tokens"</span>: <span class="nb">4096</span>,
+        <span class="st">"messages"</span>: messages
+    }
+    <span class="kw">if</span> tools:
+        kwargs[<span class="st">"tools"</span>] = tools
+
+    response = client.messages.<span class="fn">create</span>(**kwargs)
+    logger.<span class="fn">info</span>(<span class="nb">f</span><span class="st">"API call successful. Tokens: in={response.usage.input_tokens} out={response.usage.output_tokens}"</span>)
+    <span class="kw">return</span> response</pre>
+    </div>
+
+    <h3>Structured Logging</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · production/observability.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="kw">import</span> json
+<span class="kw">import</span> time
+<span class="kw">import</span> uuid
+<span class="kw">from</span> contextlib <span class="kw">import</span> contextmanager
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass, asdict, field
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime
+
+<span class="dc">@dataclass</span>
+<span class="kw">class</span> <span class="cl">AgentTrace</span>:
+    trace_id: str = <span class="fn">field</span>(default_factory=<span class="kw">lambda</span>: str(uuid.<span class="fn">uuid4</span>())[:<span class="nb">8</span>])
+    task: str = <span class="st">""</span>
+    model: str = <span class="st">""</span>
+    started_at: str = <span class="st">""</span>
+    ended_at: str = <span class="st">""</span>
+    duration_ms: int = <span class="nb">0</span>
+    total_tokens: int = <span class="nb">0</span>
+    estimated_cost_usd: float = <span class="nb">0.0</span>
+    tool_calls: list = <span class="fn">field</span>(default_factory=list)
+    steps: int = <span class="nb">0</span>
+    success: bool = <span class="nb">False</span>
+    error: str = <span class="st">""</span>
+
+<span class="cm"># Token costs per million (Claude pricing, verify current rates)</span>
+COST_PER_M = {
+    <span class="st">"claude-opus-4-5"</span>: {<span class="st">"input"</span>: <span class="nb">15.0</span>, <span class="st">"output"</span>: <span class="nb">75.0</span>},
+    <span class="st">"claude-haiku-4-5"</span>: {<span class="st">"input"</span>: <span class="nb">0.80</span>, <span class="st">"output"</span>: <span class="nb">4.0</span>},
+}
+
+<span class="dc">@contextmanager</span>
+<span class="kw">def</span> <span class="fn">trace_agent</span>(task: str, model: str = <span class="st">"claude-opus-4-5"</span>):
+    trace = <span class="cl">AgentTrace</span>(
+        task=task,
+        model=model,
+        started_at=datetime.<span class="fn">now</span>().isoformat()
+    )
+    start = time.<span class="fn">time</span>()
+
+    <span class="kw">try</span>:
+        <span class="kw">yield</span> trace
+        trace.success = <span class="nb">True</span>
+    <span class="kw">except</span> <span class="cl">Exception</span> <span class="kw">as</span> e:
+        trace.error = str(e)
+        <span class="kw">raise</span>
+    <span class="kw">finally</span>:
+        trace.ended_at = datetime.<span class="fn">now</span>().isoformat()
+        trace.duration_ms = <span class="nb">int</span>((time.<span class="fn">time</span>() - start) * <span class="nb">1000</span>)
+        <span class="cm"># Emit structured log</span>
+        <span class="nb">print</span>(json.<span class="fn">dumps</span>(<span class="fn">asdict</span>(trace), indent=<span class="nb">2</span>))</pre>
+    </div>
+
+    <h3>FastAPI Streaming Endpoint</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · api/server.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI, HTTPException
+<span class="kw">from</span> fastapi.responses <span class="kw">import</span> StreamingResponse
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+<span class="kw">import</span> anthropic
+<span class="kw">import</span> json
+
+app = <span class="cl">FastAPI</span>(title=<span class="st">"Agent API"</span>)
+client = anthropic.<span class="cl">Anthropic</span>()
+
+<span class="kw">class</span> <span class="cl">AgentRequest</span>(BaseModel):
+    task: str
+    model: str = <span class="st">"claude-opus-4-5"</span>
+    max_steps: int = <span class="nb">10</span>
+
+<span class="dc">@app.post("/agent/run")</span>
+<span class="kw">async def</span> <span class="fn">run_agent</span>(request: <span class="cl">AgentRequest</span>):
+    <span class="st">"""Run the agent and return the final result."""</span>
+    messages = [{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: request.task}]
+    <span class="cm"># ... full agent loop (see Module 1) ...</span>
+    <span class="kw">return</span> {<span class="st">"result"</span>: <span class="st">"completed"</span>, <span class="st">"steps"</span>: <span class="nb">3</span>}
+
+<span class="dc">@app.post("/agent/stream")</span>
+<span class="kw">async def</span> <span class="fn">stream_agent</span>(request: <span class="cl">AgentRequest</span>):
+    <span class="st">"""Stream agent responses using Server-Sent Events."""</span>
+    <span class="kw">async def</span> <span class="fn">event_generator</span>():
+        <span class="kw">with</span> client.messages.<span class="fn">stream</span>(
+            model=request.model,
+            max_tokens=<span class="nb">4096</span>,
+            messages=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: request.task}]
+        ) <span class="kw">as</span> stream:
+            <span class="kw">for</span> text <span class="kw">in</span> stream.<span class="fn">text_stream</span>:
+                data = json.<span class="fn">dumps</span>({<span class="st">"delta"</span>: text})
+                <span class="kw">yield</span> <span class="nb">f</span><span class="st">"data: {data}\n\n"</span>
+        <span class="kw">yield</span> <span class="st">"data: [DONE]\n\n"</span>
+
+    <span class="kw">return</span> <span class="cl">StreamingResponse</span>(
+        <span class="fn">event_generator</span>(),
+        media_type=<span class="st">"text/event-stream"</span>,
+        headers={<span class="st">"Cache-Control"</span>: <span class="st">"no-cache"</span>}
+    )
+
+<span class="dc">@app.get("/health")</span>
+<span class="kw">def</span> <span class="fn">health</span>():
+    <span class="kw">return</span> {<span class="st">"status"</span>: <span class="st">"healthy"</span>}</pre>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <div class="callout-title">Pro Tip</div>
+        <p>Use <strong>prompt caching</strong> for system prompts and large tool definitions you reuse across calls. Add <code>"cache_control": {"type": "ephemeral"}</code> to your system prompt. This can reduce costs by up to 90% for repeated agent invocations with the same setup.</p>
+      </div>
+    </div>
+
+    <h3>Exercises</h3>
+    <div class="exercise-grid">
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 7.1</div>
+        <div class="exercise-title">Add Observability</div>
+        <div class="exercise-desc">Wrap your agent from Module 3 with the <code>trace_agent</code> context manager. Run 5 different tasks and compare token costs. Identify the most expensive step in each run.</div>
+      </div>
+      <div class="exercise-card">
+        <div class="exercise-type">Exercise 7.2</div>
+        <div class="exercise-title">Deploy as REST API</div>
+        <div class="exercise-desc">Wrap any agent you've built as a FastAPI service. Test both the synchronous <code>/agent/run</code> and streaming <code>/agent/stream</code> endpoints using curl or a simple HTML client.</div>
+      </div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-tag">⭐ Challenge</div>
+      <div class="challenge-title">Cost Optimization Audit</div>
+      <p style="font-size:0.87rem;color:var(--muted);margin-top:0.4rem;">Profile your most complex agent across 10 runs. Implement prompt caching, swap eligible steps to Haiku, and add tool result caching. Measure the before/after cost difference and document your findings.</p>
+    </div>
+
+    <h3>Module 7 Checklist</h3>
+    <ul class="checklist">
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Retry logic with backoff implemented and tested</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Structured logging captures tokens, cost, and duration</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> FastAPI endpoint working (synchronous or streaming)</li>
+      <li><span class="check-box" onclick="toggleCheck(this)"></span> Understand prompt caching and when to apply it</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ CAPSTONE ═══════════════════════════════════ -->
+<section class="module" id="capstone">
+  <div class="capstone">
+    <div class="module-tag" style="margin-bottom:0.5rem;">Capstone Project</div>
+    <div class="capstone-title">Build a <span>Full-Stack Autonomous</span> Research Agent</div>
+    <p style="margin:1rem 0 0;color:var(--muted)">This is your chance to integrate everything from all 7 modules into one cohesive, production-ready system.</p>
+
+    <div class="divider"></div>
+
+    <h3 style="margin-top:0">System Requirements</h3>
+    <div class="content">
+      <ul>
+        <li><strong>Input:</strong> Accepts a research topic via REST API or CLI</li>
+        <li><strong>Research:</strong> Uses web search tool to gather information from multiple sources</li>
+        <li><strong>Memory:</strong> Stores findings in ChromaDB; recalls relevant past research</li>
+        <li><strong>Multi-agent:</strong> Researcher → Analyst → Writer pipeline</li>
+        <li><strong>Output:</strong> Structured report with citations, summary, and key takeaways</li>
+        <li><strong>API:</strong> Streaming FastAPI endpoint with structured logging</li>
+        <li><strong>MCP:</strong> At least one MCP server connected (e.g., filesystem for saving reports)</li>
+      </ul>
+    </div>
+
+    <h3>Starter Scaffold</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">text · project structure</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre>research-agent/
+├── agents/
+│   ├── researcher.py     <span class="cm"># Web search + source gathering</span>
+│   ├── analyst.py        <span class="cm"># Fact extraction + synthesis</span>
+│   └── writer.py         <span class="cm"># Report generation</span>
+├── tools/
+│   ├── web_search.py     <span class="cm"># Serper/Brave/Tavily integration</span>
+│   ├── scraper.py        <span class="cm"># Fetch and parse web pages</span>
+│   └── file_tools.py     <span class="cm"># Save reports to disk</span>
+├── memory/
+│   ├── vector_store.py   <span class="cm"># ChromaDB wrapper (Module 4)</span>
+│   └── summarizer.py     <span class="cm"># Context compression</span>
+├── api/
+│   └── server.py         <span class="cm"># FastAPI with streaming (Module 7)</span>
+├── orchestrator.py       <span class="cm"># Main agent loop + pipeline</span>
+├── .claude/
+│   └── mcp.json          <span class="cm"># MCP config (Module 6)</span>
+└── requirements.txt</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">python · orchestrator.py (skeleton)</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+      <pre><span class="kw">from</span> agents.researcher <span class="kw">import</span> ResearchAgent
+<span class="kw">from</span> agents.analyst <span class="kw">import</span> AnalystAgent
+<span class="kw">from</span> agents.writer <span class="kw">import</span> WriterAgent
+<span class="kw">from</span> memory.vector_store <span class="kw">import</span> remember, recall
+<span class="kw">from</span> production.observability <span class="kw">import</span> trace_agent
+
+<span class="kw">def</span> <span class="fn">run_research_pipeline</span>(topic: str) -> dict:
+    <span class="kw">with</span> <span class="fn">trace_agent</span>(task=topic) <span class="kw">as</span> trace:
+
+        <span class="cm"># 1. Check memory for prior research on this topic</span>
+        prior_research = <span class="fn">recall</span>(topic, n_results=<span class="nb">3</span>)
+
+        <span class="cm"># 2. Researcher gathers new information</span>
+        researcher = <span class="cl">ResearchAgent</span>()
+        raw_findings = researcher.<span class="fn">gather</span>(topic, context=prior_research)
+        trace.steps += <span class="nb">1</span>
+
+        <span class="cm"># 3. Analyst extracts structured facts and insights</span>
+        analyst = <span class="cl">AnalystAgent</span>()
+        analysis = analyst.<span class="fn">analyze</span>(raw_findings)
+        trace.steps += <span class="nb">1</span>
+
+        <span class="cm"># 4. Writer composes the final report</span>
+        writer = <span class="cl">WriterAgent</span>()
+        report = writer.<span class="fn">compose</span>(analysis, topic)
+        trace.steps += <span class="nb">1</span>
+
+        <span class="cm"># 5. Store in memory for future queries</span>
+        <span class="fn">remember</span>(
+            <span class="nb">f</span><span class="st">"Research on {topic}: {report[:500]}"</span>,
+            metadata={<span class="st">"topic"</span>: topic, <span class="st">"type"</span>: <span class="st">"research_report"</span>}
+        )
+
+        <span class="kw">return</span> {
+            <span class="st">"topic"</span>: topic,
+            <span class="st">"report"</span>: report,
+            <span class="st">"trace_id"</span>: trace.trace_id,
+            <span class="st">"steps"</span>: trace.steps
+        }</pre>
+    </div>
+
+    <h3>Assessment Rubric</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Criterion</th>
+          <th>Basic ✅</th>
+          <th>Advanced ⭐</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Agent loop</td>
+          <td>Runs without errors</td>
+          <td>Handles tool failures gracefully with retry</td>
+        </tr>
+        <tr>
+          <td>Tool use</td>
+          <td>Uses 2+ tools correctly</td>
+          <td>Parallel tool calls, result caching</td>
+        </tr>
+        <tr>
+          <td>Memory</td>
+          <td>Stores and retrieves from ChromaDB</td>
+          <td>Smart memory pruning + summarization</td>
+        </tr>
+        <tr>
+          <td>Multi-agent</td>
+          <td>3-agent pipeline works</td>
+          <td>Supervisor with quality scoring + retry</td>
+        </tr>
+        <tr>
+          <td>API</td>
+          <td>FastAPI endpoint returns results</td>
+          <td>Streaming SSE with structured logging</td>
+        </tr>
+        <tr>
+          <td>MCP</td>
+          <td>One MCP server connected</td>
+          <td>Custom MCP server built and used</td>
+        </tr>
+        <tr>
+          <td>Cost</td>
+          <td>Tracks token usage</td>
+          <td>Prompt caching + model routing implemented</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PLATFORM STACK -->
+  <h3>Platform Stack Reference</h3>
+  <div class="stack-pills">
+    <span class="stack-pill">Anthropic API</span>
+    <span class="stack-pill">Claude Code CLI</span>
+    <span class="stack-pill">MCP Protocol</span>
+    <span class="stack-pill">ChromaDB</span>
+    <span class="stack-pill">Voyage AI</span>
+    <span class="stack-pill">FastAPI</span>
+    <span class="stack-pill">asyncio</span>
+    <span class="stack-pill">tenacity</span>
+    <span class="stack-pill">GitHub Actions</span>
+    <span class="stack-pill">LangSmith (optional)</span>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  BUILDING PRODUCTION-READY AI AGENTS WITH CLAUDE CODE &nbsp;·&nbsp; 7 MODULES &nbsp;·&nbsp; ANTHROPIC 2025
+</footer>
+
+<script>
+// PROGRESS BAR
+window.addEventListener('scroll', () => {
+  const scrolled = window.scrollY;
+  const total = document.body.scrollHeight - window.innerHeight;
+  const pct = (scrolled / total) * 100;
+  document.getElementById('progress').style.width = pct + '%';
+});
+
+// INTERSECTION OBSERVER for module animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.05 });
+
+document.querySelectorAll('.module').forEach(m => observer.observe(m));
+
+// COPY CODE
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+// CHECKLIST TOGGLE
+function toggleCheck(el) {
+  el.classList.toggle('checked');
+  const li = el.closest('li');
+  li.classList.toggle('done');
+}
+</script>
+</body>
+</html>
